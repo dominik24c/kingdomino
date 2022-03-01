@@ -16,7 +16,7 @@ class Game(object):
         self.waitUntilLoginPlayers = threading.Event()
         self.waitUntilLoginPlayers.set()
 
-        # variables to demands player
+        # variables used by player
         self.lock = threading.Lock()
         self.players = []
         self.allPlayers = []
@@ -35,8 +35,8 @@ class Game(object):
         self.drawingState = True
         self.playingState = False
 
-        # variables needed to demand board
-        self.puzzlesInGame = []  # [(id,puzzle), ... ] //sorting
+        # variables used by board
+        self.puzzlesInGame = []  # [(id,puzzle), ... ] //sorted
         self.puzzlesInGameTmp = []
 
     def drawPlayers(self):
