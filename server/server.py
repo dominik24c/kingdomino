@@ -1,61 +1,79 @@
 #!/usr/bin/python3
-import sys
 import socket
-import threading
-import logging
+import sys
+from contextlib import contextmanager
 
-from config import *
-from exceptions.exceptions import *
-from game.game import Player, Game
+from common import config
+from common.logger import log
+from common.utils import encode
+from .exceptions import *
+from .game.game import Game
+from .game.player import Player
+
+
+@log
+def create_connection(logger):
+    logger.info(f'{config.SERVER} Start program')
+    logger.info(f'{config.SERVER} Creating server...')
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if sys.platform == "linux":
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(config.ADDRESS)
+    except Exception as e:
+        raise CreatingServerFailed(e)
+    else:
+        return server
+
+
+@contextmanager
+def openConnection(server):
+    if not isinstance(server, Server):
+        raise Exception(f"It's not {Server.__name__} instance!")
+    try:
+        server.listen()
+        yield
+    finally:
+        conn = server.conn
+        if conn:
+            conn.close()
 
 
 class Server(object):
     def __init__(self):
-        self.logger = logging.getLogger('server_app')
-        self.logger.info(f'{SERVER} Start program')
-        self.logger.info(f'{SERVER} Creating server...')
-        try:
-            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            if sys.platform == "linux":
-                self.server.setsockopt(
-                    socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server.bind(ADDRESS)
-        except Exception as e:
-            raise CreatingServerFailed(e)
+        self.conn = create_connection()
         self.game = Game()
 
-    def listen(self):
-        self.logger.info(f"{SERVER} Listening...")
+    @log
+    def listen(self, logger):
+        logger.info(f"{config.SERVER} Listening...")
         try:
-            self.server.listen(NUMBER_OF_PLAYERS)
+            self.conn.listen(config.NUMBER_OF_PLAYERS)
         except Exception as e:
             raise ListeningServerFailed(e)
 
-    def run(self):
-        self.listen()
+    @log
+    def run(self, logger):
         try:
-            while self.game.inGame:
-                conn, addr = self.server.accept()
-                self.logger.info(f"{SERVER} NEW PLAYER HAS JOINED.")
-                connectText = f'{S_CONNECT}\n'.encode(UTF8)
-                conn.send(connectText)
+            with openConnection(self):
+                while self.game.inGame:
+                    conn, addr = self.conn.accept()
+                    logger.info(f"{config.SERVER} NEW PLAYER HAS JOINED.")
+                    conn.send(encode(f'{config.S_CONNECT}'))
 
-                player = Player(conn, self.game, self.game.amountOfPlayers+1)
-                self.game.addNewPlayer(player)
-                if len(self.game.players) == NUMBER_OF_PLAYERS:
-                    self.game.startGame()
-                    for player in self.game.players:
-                        player.join()
-                    self.logger.info('END GAME')
+                    player = Player(conn, self.game, self.game.amountOfPlayers + 1)
+                    self.game.addNewPlayer(player)
+                    if len(self.game.players) == config.NUMBER_OF_PLAYERS:
+                        self.game.startGame()
+                        for player in self.game.players:
+                            player.join()
+                        logger.info('END GAME')
                     # break
         except KeyboardInterrupt:
             self.game.inGame = False
-            self.logger.warn('Interrupted')
+            logger.warn('Keyboard Interrupt')
         except Exception as e:
-            self.logger.error(f'Error {e}')
+            logger.error(f'Error {e}')
             raise ConnectionServerFailed(e)
-        finally:
-            if self.server:
-                self.server.close()
 
-        self.logger.info(f'END PROGRAM')
+        logger.info(f'END PROGRAM')

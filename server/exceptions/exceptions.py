@@ -1,37 +1,34 @@
-__all__ = (
-    "CreatingServerFailed",
-    "ListeningServerFailed",
-    "ConnectionServerFailed",
-    "EmptyMessage",
-    "NotPassedArgs",
-    "TooLongMessage"
-)
-
-# Cannot creating server (socket)
+class GameException(Exception):
+    """Main Game Exception"""
 
 
-class CreatingServerFailed(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+class ServerException(Exception):
+    """Main Server Exception"""
 
 
-class ListeningServerFailed(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+class CommandReaderException(Exception):
+    """Main Command Reader Exception"""
 
 
-class ConnectionServerFailed(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-
-
-class EmptyMessage(Exception):
+class CreatingServerFailed(ServerException):
     pass
 
 
-class NotPassedArgs(Exception):
+class ListeningServerFailed(ServerException):
     pass
 
 
-class TooLongMessage(Exception):
+class ConnectionServerFailed(ServerException):
+    pass
+
+
+class EmptyMessage(CommandReaderException):
+    pass
+
+
+class NotPassedArgs(CommandReaderException):
+    pass
+
+
+class TooLongMessage(CommandReaderException):
     pass
