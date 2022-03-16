@@ -2,14 +2,14 @@
 
 ## 1. Server
 
-Change settings in `./common/config.py` file: \
-For deployment:
+Change settings in `./common/config.py` file: 
+#### Development:
 
 ```python
 IP_SERVER = '127.0.0.1'
 ```
 
-For production:
+#### Production:
 
 ```python
 IP_SERVER = '0.0.0.0'
@@ -23,20 +23,14 @@ python3 run_server.py
 
 ## 2. Client
 
-Navigate to client directory
-
-```bash
-cd client
-```
-
-Change settings in config.py file: \
-For deployment:
+Change settings in config.py file: 
+#### Development:
 
 ```python
 C_IP_SERVER = '127.0.0.1'
 ```
 
-For production:
+#### Production:
 
 ```python
 C_IP_SERVER = 'IP_SERVER'
@@ -48,17 +42,17 @@ Command to run client app
 python3 run_client.py
 ```
 
-Args:
+Arguments: \
 login - enter your username example:
 
 ```bash
-python3 main.py login="User-123456"
+python3 run_client.py login="User-123456"
 ```
 
 hacker_mode - enter hacker mode example:
 
 ```bash
-python3 main.py hacker_mode="exit after choice"
+python3 run_client.py hacker_mode="exit after choice"
 ```
 
 List of hacker's mode:
