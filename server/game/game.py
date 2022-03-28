@@ -43,20 +43,13 @@ class Game:
         tmpPlayers = self.players.copy()
         random.shuffle(tmpPlayers)
 
-        self.orderOfPlayers = []
-        for player in tmpPlayers:
-            self.orderOfPlayers.append(player.idPlayer)
-
+        self.orderOfPlayers = [player.idPlayer for player in tmpPlayers]
         return self.orderOfPlayers[0]
 
     def setOrderOfPlayers(self):
         self.puzzlesInGameTmp.sort(key=lambda x: x[1])
-        self.orderOfPlayers = []
-        for element in self.puzzlesInGameTmp:
-            self.orderOfPlayers.append(element[0])
+        self.orderOfPlayers = [puzzle[0] for puzzle in self.puzzlesInGameTmp]
         self.puzzlesInGameTmp = []
-
-        # print(f'{self.orderOfPlayers}')
         return self.orderOfPlayers[0]
 
     def removeItemPuzzlesInTmpList(self, id):
@@ -74,8 +67,8 @@ class Game:
             self.puzzlesOnRound = []
             for i in range(config.NUMBER_OF_PLAYERS):
                 index = random.randint(0, len(self.puzzles) - 1)
-                item = self.puzzles.pop(index)
-                self.puzzlesOnRound.append(item[0])
+                puzzle = self.puzzles.pop(index)
+                self.puzzlesOnRound.append(puzzle[0])
         elif self.rounds == config.ROUNDS:
             self.puzzlesOnRound = self.puzzlesInGameTmp.copy()
         else:
@@ -97,23 +90,14 @@ class Game:
                 # print(f'Removed player-{idPlayer}')
 
     def getPlayerById(self, idPlayer):
-        playerList = [
-            player for player in self.players if player.idPlayer == idPlayer]
+        playerList = [player for player in self.players if player.idPlayer == idPlayer]
         if len(playerList) != 0:
             return playerList[0]
 
     def checkLogin(self):
-        indexes = []
-        for index, player in enumerate(self.players):
-            # print(player.name)
-            if player.name == "":
-                indexes.append(index)
-
-        length = len(self.players)
-        # print(length)
+        indexes = [index for index, player in enumerate(self.players) if player.name == '']
         for index in indexes:
-            i = index - (length - len(self.players))
-            self.players.pop(i)
+            self.players.pop(index)
 
     def waitForLoginPlayers(self):
         start = time.time()
@@ -145,22 +129,22 @@ class Game:
                 self.sendYourMove(self.getPlayerById(self.currentPlayer))
                 self.puzzlesInGameTmp = self.puzzlesInGame.copy()
             else:
-                # print(f'switch player to choosing puzzle')
+                # print('switch player to choosing puzzle')
                 self.currentPlayer = self.orderOfPlayers[0]
                 # print(self.getPlayerById(self.currentPlayer))
                 self.sendYourChoice(self.getPlayerById(self.currentPlayer))
 
         elif self.playingState:
-            # print(f'in playing state')
+            # print('in playing state')
             self.puzzlesInGame.pop(0)
             if len(self.puzzlesInGame) == 0:
-                # print(f'go to drawing state')
+                # print('go to drawing state')
                 self.currentPlayer = self.setOrderOfPlayers()
                 self.toggleStateOfGame()
                 # print(self.getPlayerById(self.currentPlayer))
                 self.sendYourChoice(self.getPlayerById(self.currentPlayer))
             else:
-                # print(f'switch player to moving your puzzle')
+                # print('switch player to moving your puzzle')
                 self.currentPlayer = self.puzzlesInGame[0][0]
                 self.sendYourMove(self.getPlayerById(self.currentPlayer))
 
@@ -191,75 +175,55 @@ class Game:
     def sendPlayerChoice(self, choosenPuzzle):
         for player in self.players:
             if self.currentPlayer != player.idPlayer and player.idPlayer in self.orderOfPlayers:
-                player.sendMsg(
-                    f'{config.S_PLAYER_CHOICE} {self.currentPlayer} {choosenPuzzle}')
+                player.sendMsg(f'{config.S_PLAYER_CHOICE} {self.currentPlayer} {choosenPuzzle}')
 
     @log
     def sendRound(self, logger):
         puzzles = ""
         if len(self.puzzlesOnRound) > 0 and self.rounds < config.ROUNDS:
-            puzzles = " " + listToStr(self.puzzlesOnRound)
-        logger.info(f'{config.SERVER} {config.S_ROUND}{puzzles}')
+            puzzles = listToStr(self.puzzlesOnRound)
+        logger.info(f'{config.SERVER} {config.S_ROUND} {puzzles}')
         for player in self.players:
-            player.sendMsg(f'{config.S_ROUND}{puzzles}')
+            player.sendMsg(f'{config.S_ROUND} {puzzles}')
 
     @log
     def sendYourMove(self, player, logger):
         if player.idPlayer == self.puzzlesInGame[0][0]:
             player.isYourMove.set()
-            logger.info(
-                f'{config.SERVER} SEND TO PLAYER {player.idPlayer} {config.S_YOUR_MOVE}')
+            logger.info(f'{config.SERVER} SEND TO PLAYER {player.idPlayer} {config.S_YOUR_MOVE}')
             player.sendMsg(f'{config.S_YOUR_MOVE}')
             return True
         return False
 
     @log
     def sendPlayerMove(self, x, y, orientation, logger):
-        logger.info(
-            f'{config.SERVER} {config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
+        logger.info(f'{config.SERVER} {config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
         idPlayers = [idPlayer for idPlayer, puzzle in self.puzzlesInGame]
         for player in self.players:
             if self.currentPlayer != player.idPlayer and player.idPlayer in idPlayers:
-                player.sendMsg(
-                    f'{config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
+                player.sendMsg(f'{config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
 
     @log
     def sendGameOver(self, logger):
-        results = []
-        for player in self.allPlayers:
-            points = player.board.calculateResult()
-            results.append((player.idPlayer, points))
+        results = [(player.idPlayer, player.board.calculateResult()) for player in self.allPlayers]
         results.sort(key=lambda x: x[1])
         results.reverse()
-        stringResult = ""
-        for result in results:
-            stringResult += str(result[0]) + " " + str(result[1]) + " "
-        stringResult = stringResult.strip()
-        # print(stringResult)
-        for player in self.players:
-            player.sendMsg(f'{config.S_GAME_OVER_RESULTS} {stringResult}')
+        stringResult = " ".join([f'{result[0]} {result[1]}' for result in results])
 
         for player in self.players:
-            if player is not None:
-                player.inGame = False
-                # player.join()
+            player.sendMsg(f'{config.S_GAME_OVER_RESULTS} {stringResult}')
+            player.inGame = False
 
         logger.info(f'{config.SERVER} {config.S_GAME_OVER_RESULTS} {stringResult}')
         self.inGame = False
 
     def checkPuzzle(self, choosenPuzzle):
-        flag = False
-        for puzzle in self.puzzlesOnRound:
-            if puzzle == choosenPuzzle:
-                flag = True
-                break
-        return flag
+        return any([puzzle == choosenPuzzle for puzzle in self.puzzlesOnRound])
 
     def checkConnectionForPlayer(self):
         for player in self.players:
-            if player is not None:
-                if not player.isConnection:
-                    return player.idPlayer
+            if player is not None and not player.isConnection:
+                return player.idPlayer
         return None
 
     @log
@@ -271,14 +235,9 @@ class Game:
         except ValueError:
             logger.error(f'Unexpected error: ValueError!')
 
-        index = 0
-        indexesToRemove = []
-        for puzzles in self.puzzlesInGame:
-            if puzzles[0] == id:
-                indexesToRemove.append(index)
-            index += 1
-
+        indexesToRemove = [index for index, puzzles in enumerate(self.puzzlesInGame) if puzzles[0] == id]
         indexesToRemove.reverse()
+
         for i in indexesToRemove:
             self.puzzlesInGame.pop(i)
 
@@ -305,21 +264,18 @@ class Game:
         self.loginAndInitGame()
 
         while self.inGame:
-            with self.lock:
-                idPlayer = self.checkConnectionForPlayer()
-                if len(self.players) == 0:
-                    logger.info(f"{config.SERVER} EXIT GAME")
-                    self.inGame = False
-                elif idPlayer is not None:
-                    # print("LOST CONNECTION")
-                    logger.info(
-                        f'{config.SERVER} lost connection by player {idPlayer}')
-                    if self.currentPlayer == idPlayer:
-                        # print('Remove current player')
-                        self.changeCurrentPlayer()
-                    else:
-                        # print('Remove player')
-                        self.removePlayer(idPlayer)
+            idPlayer = self.checkConnectionForPlayer()
+            if len(self.players) == 0:
+                logger.info(f"{config.SERVER} EXIT GAME")
+                self.inGame = False
+            elif idPlayer is not None:
+                logger.info(f'{config.SERVER} lost connection by player {idPlayer}')
+                if self.currentPlayer == idPlayer:
+                    # print('Remove current player')
+                    self.changeCurrentPlayer()
+                else:
+                    # print('Remove player')
+                    self.removePlayer(idPlayer)
 
     def legalMove(self, player, choosenPuzzle=0, x=0, y=0, orientation=0):
         flag = False
@@ -353,8 +309,7 @@ class Game:
                 player.sendMsg(f'{config.S_OK}')
                 player.isYourMove.clear()
                 self.puzzlesInGame.pop(0)
-                player.board.addPuzzleToTheBoard(
-                    player.puzzle, x, y, orientation)
+                player.board.addPuzzleToTheBoard(player.puzzle, x, y, orientation)
 
                 if len(self.puzzlesInGame) == 0:
                     self.playingState = False
