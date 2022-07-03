@@ -2,7 +2,7 @@ import threading
 
 from common import config
 from common.base_player import BasePlayer
-from common.logger import log
+from ..dependencies import logger
 from .board import Board
 from ..utils import getCommandAndArgsForPlayer
 
@@ -24,8 +24,7 @@ class Player(BasePlayer, threading.Thread):
         self.idPlayer = idPlayer
         self.numOfErrors = 0
 
-    @log
-    def sendMsg(self, msg, logger):
+    def sendMsg(self, msg):
         try:
             super().sendMsg(msg)
         except Exception:
@@ -36,8 +35,7 @@ class Player(BasePlayer, threading.Thread):
     def getPlayerInfo(self):
         return f'[PLAYER {self.idPlayer}] - '
 
-    @log
-    def sendError(self, logger):
+    def sendError(self):
         self.numOfErrors += 1
         self.sendMsg(f'{config.S_ERROR}')
         logger.error(f'{config.CLIENT} {self.getPlayerInfo()} {config.S_ERROR}')
@@ -46,8 +44,7 @@ class Player(BasePlayer, threading.Thread):
         msg = self.recvMsg()
         return [m for m in msg.split("\n") if m != '']
 
-    @log
-    def loginHandler(self, args, logger):
+    def loginHandler(self, args):
         if len(args) == 1 and self.name == "":
             self.name = args[0]
             logger.info(f'{config.CLIENT} {self.getPlayerInfo()} Set nickname: {self.name}')
@@ -58,8 +55,7 @@ class Player(BasePlayer, threading.Thread):
             logger.error(f'{config.CLIENT} {self.getPlayerInfo()} Your args: {args}')
             self.sendError()
 
-    @log
-    def moveHandler(self, args, logger):
+    def moveHandler(self, args):
         try:
             if len(args) != 3:
                 raise Exception
@@ -72,8 +68,7 @@ class Player(BasePlayer, threading.Thread):
         except Exception as e:
             self.sendError()
 
-    @log
-    def chooseHandler(self, args, logger):
+    def chooseHandler(self, args):
         try:
             if len(args) != 1:
                 raise Exception
@@ -94,8 +89,7 @@ class Player(BasePlayer, threading.Thread):
             timeout = config.TIMEOUT
         return timeout
 
-    @log
-    def run(self, logger):
+    def run(self):
         messages = None
         while self.isConnection and self.inGame:
             if self.isYourMove.is_set():

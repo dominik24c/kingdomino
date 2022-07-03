@@ -6,7 +6,7 @@ import time
 
 from common import config
 from common.base_player import BasePlayer
-from common.logger import log
+from .dependencies import logger
 
 
 def getCommands():
@@ -66,8 +66,7 @@ class Player(BasePlayer):
         msg = msg.replace("\n", '')
         return msg
 
-    @log
-    def loginToGame(self, logger, auto_login=True):
+    def loginToGame(self, auto_login=True):
         msg = self.getResponse()
         if msg == config.S_CONNECT:
             if auto_login:
@@ -88,28 +87,24 @@ class Player(BasePlayer):
         elif len(l) > 1:
             return l[0], l[1:]  # return command and args
 
-    @log
-    def startCommandHandler(self, msg, logger):
+    def startCommandHandler(self, msg):
         logger.info(f'{config.SERVER} - START')
         _, args = self.convertingMsg(msg)
         self.id = args[0]
         numberOfPlayers = int(len(args[1:]) / 2)
         self.puzzles = args[1 + numberOfPlayers:]
 
-    @log
-    def yourChoiceCommandHandler(self, logger):
+    def yourChoiceCommandHandler(self):
         logger.info(f'{config.CLIENT} - {config.S_CHOOSE} {self.puzzles[0]}')
         self.sendMsg(f'{config.S_CHOOSE} {self.puzzles[0]}')
 
-    @log
-    def playerChoiceCommandHandler(self, msg, logger):
+    def playerChoiceCommandHandler(self, msg):
         logger.info(f'{config.SERVER} - {msg}')
         _, args = self.convertingMsg(msg)
         self.puzzle = args[2]
         self.puzzles.remove(self.puzzle)
 
-    @log
-    def roundCommandHandler(self, msg, logger):
+    def roundCommandHandler(self, msg):
         print(f'{msg}')
         self.puzzles = []
         _, args = self.convertingMsg(msg)
@@ -121,8 +116,7 @@ class Player(BasePlayer):
 
         # print(f'Puzzles {self.puzzles}')
 
-    @log
-    def yourMoveCommandHandler(self, logger):
+    def yourMoveCommandHandler(self):
         logger.info(f'{config.SERVER} - {config.S_YOUR_MOVE}')
         self.rounds += 1
         if self.rounds == 1:
@@ -138,14 +132,12 @@ class Player(BasePlayer):
         self.sendMsg(f'{msg}')
         logger.info(f'{config.CLIENT} - {msg}')
 
-    @log
-    def moveCommandHandler(self, msg, logger):
+    def moveCommandHandler(self, msg):
         logger.info(f'{config.SERVER} - {msg}')
         _, args = self.convertingMsg(msg)
         self.playerMoves += 1
 
-    @log
-    def startGame(self, logger):
+    def startGame(self):
         while self.inGame:
             messages = self.recvMsg()
             # print(messages)

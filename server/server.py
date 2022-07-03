@@ -4,15 +4,14 @@ import sys
 from contextlib import contextmanager
 
 from common import config
-from common.logger import log
 from common.utils import encode
 from .exceptions import *
 from .game.game import Game
 from .game.player import Player
+from .dependencies import logger
 
 
-@log
-def create_connection(logger):
+def create_connection():
     logger.info(f'{config.SERVER} Start program')
     logger.info(f'{config.SERVER} Creating server...')
     try:
@@ -44,16 +43,14 @@ class Server(object):
         self.conn = create_connection()
         self.game = Game()
 
-    @log
-    def listen(self, logger):
+    def listen(self):
         logger.info(f"{config.SERVER} Listening...")
         try:
             self.conn.listen(config.NUMBER_OF_PLAYERS)
         except Exception as e:
             raise ListeningServerFailed(e)
 
-    @log
-    def run(self, logger):
+    def run(self):
         try:
             with openConnection(self):
                 while self.game.inGame:

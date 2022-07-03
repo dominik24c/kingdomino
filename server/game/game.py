@@ -3,7 +3,7 @@ import threading
 import time
 
 from common import config
-from common.logger import log
+from ..dependencies import logger
 from server.utils import listToStr
 from .puzzles import PUZZLES
 
@@ -148,8 +148,7 @@ class Game:
                 self.currentPlayer = self.puzzlesInGame[0][0]
                 self.sendYourMove(self.getPlayerById(self.currentPlayer))
 
-    @log
-    def sendStartGame(self, logger):
+    def sendStartGame(self):
         self.currentPlayer = self.drawPlayers()
         self.drawPuzzles()
         for player in self.players:
@@ -162,8 +161,7 @@ class Game:
         self.sendYourChoice(self.getPlayerById(self.currentPlayer))
         self.rounds += 1
 
-    @log
-    def sendYourChoice(self, player, logger):
+    def sendYourChoice(self, player):
         if player is not None and player.idPlayer == self.orderOfPlayers[0]:
             player.isYourMove.set()
             player.sendMsg(f'{config.S_YOUR_CHOICE}')
@@ -177,8 +175,7 @@ class Game:
             if self.currentPlayer != player.idPlayer and player.idPlayer in self.orderOfPlayers:
                 player.sendMsg(f'{config.S_PLAYER_CHOICE} {self.currentPlayer} {choosenPuzzle}')
 
-    @log
-    def sendRound(self, logger):
+    def sendRound(self):
         puzzles = ""
         if len(self.puzzlesOnRound) > 0 and self.rounds < config.ROUNDS:
             puzzles = listToStr(self.puzzlesOnRound)
@@ -186,8 +183,7 @@ class Game:
         for player in self.players:
             player.sendMsg(f'{config.S_ROUND} {puzzles}')
 
-    @log
-    def sendYourMove(self, player, logger):
+    def sendYourMove(self, player):
         if player.idPlayer == self.puzzlesInGame[0][0]:
             player.isYourMove.set()
             logger.info(f'{config.SERVER} SEND TO PLAYER {player.idPlayer} {config.S_YOUR_MOVE}')
@@ -195,16 +191,14 @@ class Game:
             return True
         return False
 
-    @log
-    def sendPlayerMove(self, x, y, orientation, logger):
+    def sendPlayerMove(self, x, y, orientation):
         logger.info(f'{config.SERVER} {config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
         idPlayers = [idPlayer for idPlayer, puzzle in self.puzzlesInGame]
         for player in self.players:
             if self.currentPlayer != player.idPlayer and player.idPlayer in idPlayers:
                 player.sendMsg(f'{config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
 
-    @log
-    def sendGameOver(self, logger):
+    def sendGameOver(self):
         results = [(player.idPlayer, player.board.calculateResult()) for player in self.allPlayers]
         results.sort(key=lambda x: x[1])
         results.reverse()
@@ -226,8 +220,7 @@ class Game:
                 return player.idPlayer
         return None
 
-    @log
-    def removePlayer(self, id, logger):
+    def removePlayer(self, id):
         self.removeItemPuzzlesInTmpList(id)
         self.removePlayerById(id)
         try:
@@ -246,8 +239,7 @@ class Game:
             player.isYourMove.clear()
         self.waitUntilLoginPlayers.clear()
 
-    @log
-    def loginAndInitGame(self, logger):
+    def loginAndInitGame(self):
         self.allPlayers = self.players.copy()
         for player in self.players:
             player.start()
@@ -259,8 +251,7 @@ class Game:
         # self.logger.info(f'{config.SERVER} {self.players}')
         self.sendStartGame()
 
-    @log
-    def startGame(self, logger):
+    def startGame(self):
         self.loginAndInitGame()
 
         while self.inGame:
@@ -277,19 +268,19 @@ class Game:
                     # print('Remove player')
                     self.removePlayer(idPlayer)
 
-    def legalMove(self, player, choosenPuzzle=0, x=0, y=0, orientation=0):
+    def legalMove(self, player, chosenPuzzle=0, x=0, y=0, orientation=0):
         flag = False
         with self.lock:
             # self.logger.info(f"{config.SERVER} Check legal Move")
-            if self.drawingState and player.idPlayer == self.currentPlayer and self.checkPuzzle(choosenPuzzle):
+            if self.drawingState and player.idPlayer == self.currentPlayer and self.checkPuzzle(chosenPuzzle):
                 flag = True
                 player.sendMsg(f'{config.S_OK}')
                 player.isYourMove.clear()
-                player.puzzle = choosenPuzzle
-                self.sendPlayerChoice(choosenPuzzle)
+                player.puzzle = chosenPuzzle
+                self.sendPlayerChoice(chosenPuzzle)
                 self.orderOfPlayers.pop(0)
-                self.puzzlesOnRound.remove(choosenPuzzle)
-                self.puzzlesInGame.append((player.idPlayer, choosenPuzzle))
+                self.puzzlesOnRound.remove(chosenPuzzle)
+                self.puzzlesInGame.append((player.idPlayer, chosenPuzzle))
 
                 if len(self.orderOfPlayers) == 0:
                     self.drawingState = False
