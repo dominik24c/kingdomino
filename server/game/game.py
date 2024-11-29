@@ -4,7 +4,7 @@ import time
 
 from common import config
 from ..dependencies import logger
-from server.utils import listToStr
+from server.utils import list_to_str
 from .puzzles import PUZZLES
 
 
@@ -65,7 +65,7 @@ class Game:
         # print(f'{len(self.puzzles)}')
         if len(self.puzzles) > 0 and self.rounds < config.ROUNDS:
             self.puzzlesOnRound = []
-            for i in range(config.NUMBER_OF_PLAYERS):
+            for _ in range(config.NUMBER_OF_PLAYERS):
                 index = random.randint(0, len(self.puzzles) - 1)
                 puzzle = self.puzzles.pop(index)
                 self.puzzlesOnRound.append(puzzle[0])
@@ -90,9 +90,9 @@ class Game:
                 # print(f'Removed player-{idPlayer}')
 
     def getPlayerById(self, idPlayer):
-        playerList = [player for player in self.players if player.idPlayer == idPlayer]
-        if len(playerList) != 0:
-            return playerList[0]
+        for player in self.players:
+            if player.idPlayer == idPlayer:
+                return player
 
     def checkLogin(self):
         indexes = [index for index, player in enumerate(self.players) if player.name == '']
@@ -154,9 +154,9 @@ class Game:
         for player in self.players:
             if player.idPlayer in self.orderOfPlayers:
                 logger.info(
-                    f'{config.SERVER} {config.S_START} {player.idPlayer} {listToStr(self.orderOfPlayers)} {listToStr(self.puzzlesOnRound)}')
-                player.sendMsg(
-                    f'{config.S_START} {player.idPlayer} {listToStr(self.orderOfPlayers)} {listToStr(self.puzzlesOnRound)}')
+                    f'{config.SERVER} {config.S_START} {player.idPlayer} {list_to_str(self.orderOfPlayers)} {list_to_str(self.puzzlesOnRound)}')
+                player.send_msg(
+                    f'{config.S_START} {player.idPlayer} {list_to_str(self.orderOfPlayers)} {list_to_str(self.puzzlesOnRound)}')
 
         self.sendYourChoice(self.getPlayerById(self.currentPlayer))
         self.rounds += 1
@@ -164,7 +164,7 @@ class Game:
     def sendYourChoice(self, player):
         if player is not None and player.idPlayer == self.orderOfPlayers[0]:
             player.isYourMove.set()
-            player.sendMsg(f'{config.S_YOUR_CHOICE}')
+            player.send_msg(f'{config.S_YOUR_CHOICE}')
             logger.info(
                 f'{config.SERVER} SEND TO PLAYER {player.idPlayer} {config.S_YOUR_CHOICE}')
             return True
@@ -173,21 +173,21 @@ class Game:
     def sendPlayerChoice(self, choosenPuzzle):
         for player in self.players:
             if self.currentPlayer != player.idPlayer and player.idPlayer in self.orderOfPlayers:
-                player.sendMsg(f'{config.S_PLAYER_CHOICE} {self.currentPlayer} {choosenPuzzle}')
+                player.send_msg(f'{config.S_PLAYER_CHOICE} {self.currentPlayer} {choosenPuzzle}')
 
     def sendRound(self):
         puzzles = ""
         if len(self.puzzlesOnRound) > 0 and self.rounds < config.ROUNDS:
-            puzzles = listToStr(self.puzzlesOnRound)
+            puzzles = list_to_str(self.puzzlesOnRound)
         logger.info(f'{config.SERVER} {config.S_ROUND} {puzzles}')
         for player in self.players:
-            player.sendMsg(f'{config.S_ROUND} {puzzles}')
+            player.send_msg(f'{config.S_ROUND} {puzzles}')
 
     def sendYourMove(self, player):
         if player.idPlayer == self.puzzlesInGame[0][0]:
             player.isYourMove.set()
             logger.info(f'{config.SERVER} SEND TO PLAYER {player.idPlayer} {config.S_YOUR_MOVE}')
-            player.sendMsg(f'{config.S_YOUR_MOVE}')
+            player.send_msg(f'{config.S_YOUR_MOVE}')
             return True
         return False
 
@@ -196,16 +196,16 @@ class Game:
         idPlayers = [idPlayer for idPlayer, puzzle in self.puzzlesInGame]
         for player in self.players:
             if self.currentPlayer != player.idPlayer and player.idPlayer in idPlayers:
-                player.sendMsg(f'{config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
+                player.send_msg(f'{config.S_PLAYER_MOVE} {self.currentPlayer} {x} {y} {orientation}')
 
     def sendGameOver(self):
-        results = [(player.idPlayer, player.board.calculateResult()) for player in self.allPlayers]
+        results = [(player.idPlayer, player.board.calculate_result()) for player in self.allPlayers]
         results.sort(key=lambda x: x[1])
         results.reverse()
         stringResult = " ".join([f'{result[0]} {result[1]}' for result in results])
 
         for player in self.players:
-            player.sendMsg(f'{config.S_GAME_OVER_RESULTS} {stringResult}')
+            player.send_msg(f'{config.S_GAME_OVER_RESULTS} {stringResult}')
             player.inGame = False
 
         logger.info(f'{config.SERVER} {config.S_GAME_OVER_RESULTS} {stringResult}')
@@ -274,7 +274,7 @@ class Game:
             # self.logger.info(f"{config.SERVER} Check legal Move")
             if self.drawingState and player.idPlayer == self.currentPlayer and self.checkPuzzle(chosenPuzzle):
                 flag = True
-                player.sendMsg(f'{config.S_OK}')
+                player.send_msg(f'{config.S_OK}')
                 player.isYourMove.clear()
                 player.puzzle = chosenPuzzle
                 self.sendPlayerChoice(chosenPuzzle)
@@ -295,12 +295,12 @@ class Game:
                         self.sendYourChoice(player)
 
             elif self.playingState and player.idPlayer == self.currentPlayer and \
-                    player.board.checkIsCorrectMove(x, y, orientation):
+                    player.board.check_is_correct_move(x, y, orientation):
                 flag = True
-                player.sendMsg(f'{config.S_OK}')
+                player.send_msg(f'{config.S_OK}')
                 player.isYourMove.clear()
                 self.puzzlesInGame.pop(0)
-                player.board.addPuzzleToTheBoard(player.puzzle, x, y, orientation)
+                player.board.add_puzzle_to_the_board(player.puzzle, x, y, orientation)
 
                 if len(self.puzzlesInGame) == 0:
                     self.playingState = False

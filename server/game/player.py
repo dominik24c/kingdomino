@@ -4,7 +4,7 @@ from common import config
 from common.base_player import BasePlayer
 from ..dependencies import logger
 from .board import Board
-from ..utils import getCommandAndArgsForPlayer
+from ..utils import get_command_and_args_from_player
 
 
 class Player(BasePlayer, threading.Thread):
@@ -24,9 +24,9 @@ class Player(BasePlayer, threading.Thread):
         self.idPlayer = idPlayer
         self.numOfErrors = 0
 
-    def sendMsg(self, msg):
+    def send_msg(self, msg):
         try:
-            super().sendMsg(msg)
+            super().send_msg(msg)
         except Exception:
             m = msg.replace('\n', '')
             logger.error(f'{config.CLIENT} Connection lost! {self.idPlayer}, cannot send: {m}')
@@ -37,18 +37,18 @@ class Player(BasePlayer, threading.Thread):
 
     def sendError(self):
         self.numOfErrors += 1
-        self.sendMsg(f'{config.S_ERROR}')
+        self.send_msg(f'{config.S_ERROR}')
         logger.error(f'{config.CLIENT} {self.getPlayerInfo()} {config.S_ERROR}')
 
     def messageHandler(self):
-        msg = self.recvMsg()
+        msg = self.recv_msg()
         return [m for m in msg.split("\n") if m != '']
 
     def loginHandler(self, args):
         if len(args) == 1 and self.name == "":
             self.name = args[0]
             logger.info(f'{config.CLIENT} {self.getPlayerInfo()} Set nickname: {self.name}')
-            self.sendMsg(f'{config.S_OK}')
+            self.send_msg(f'{config.S_OK}')
             self.numOfErrors = 0
         else:
             logger.error(f'{config.CLIENT} {self.getPlayerInfo()} Cannot set nickname!')
@@ -121,7 +121,7 @@ class Player(BasePlayer, threading.Thread):
                                 f'kicked!')
                             self.isConnection = False
 
-                        command, args = getCommandAndArgsForPlayer(m)
+                        command, args = get_command_and_args_from_player(m)
                         logger.info(f'{config.CLIENT} {self.getPlayerInfo()} {command} {args}')
 
                         if self.isConnection:

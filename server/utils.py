@@ -1,16 +1,9 @@
-def listToStr(listOfNumbers):
-    tmpList = [str(n) for n in listOfNumbers]
-    return " ".join(tmpList)
+def list_to_str(numbers_list):
+    return " ".join([str(n) for n in numbers_list])
 
 
-def getCommandAndArgsForPlayer(msg):
-    msgWithoutNewLine = msg.rstrip('\n')
-    listOfMsg = msgWithoutNewLine.split(" ")
-    utilizedList = list(filter(lambda char: char != "", listOfMsg))
+def get_command_and_args_from_player(msg):
+    messages = msg.rstrip('\n').split(" ")
+    utilized_list = list(filter(lambda char: char != "", messages))
 
-    command = utilizedList[0]
-    if len(utilizedList) == 1:
-        args = []
-    else:
-        args = utilizedList[1:]
-    return command, args
+    return utilized_list[0], utilized_list[1:]

@@ -2,6 +2,6 @@
 from .server import Server
 
 
-def runServer():
+def run_server():
     server = Server()
     server.run()

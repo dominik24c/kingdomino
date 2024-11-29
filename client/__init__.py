@@ -2,6 +2,6 @@
 from .client import Client
 
 
-def runClient():
+def run_client():
     client = Client()
     client.run()

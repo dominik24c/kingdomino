@@ -7,39 +7,25 @@ import time
 from common import config
 from common.base_player import BasePlayer
 from .dependencies import logger
-
-
-def getCommands():
-    username = None
-    hacker_mode = None
-    if len(sys.argv) > 1:
-        minIndex = 1
-        for i in range(minIndex, len(sys.argv)):
-            result = sys.argv[i].split("=")
-            if len(result) == 2:
-                if result[0] == config.A_LOGIN:
-                    username = result[1]
-                elif result[0] == config.A_HACKER_MODE:
-                    hacker_mode = result[1]
-    return username, hacker_mode
+from .utils import get_commands, generate_nickname
 
 
 class Player(BasePlayer):
     def __init__(self, conn):
         super().__init__(conn)
-        username, hacker_mode = getCommands()
+        username, hacker_mode = get_commands()
         if username is None:
-            username = self.generateNickname(10)
+            username = generate_nickname(10)
 
         self.name = username
         self.id = 0
-        self.inGame = True
+        self.in_game = True
 
-        self.playerMoves = 0
+        self.player_moves = 0
         self.rounds = 0
 
-        self.posX = 0
-        self.posY = 1
+        self.pos_x = 0
+        self.pos_y = 1
         self.orientation = 0
 
         self.puzzles = []
@@ -47,67 +33,43 @@ class Player(BasePlayer):
 
         self.hacker_mode = hacker_mode
         self.receivedMessage = 0
-        self.maxReceivedMessage = random.randint(0, config.MAX_RECEIVED_MESSAGE)
-        self.exitGameAfterYourChoice = random.randint(2, 10)
-        self.flagTimeoutDuringGame = random.randint(2, 10)
+        self.exit_game_after_your_choice = random.randint(2, 10)
+        self.flag_timeout_during_game = random.randint(2, 10)
 
-    def generateNickname(self, size):
-        start = ord("a")
-        end = ord("z")
-        nickname = ""
-        for _ in range(size):
-            decAsciiSign = random.randint(start, end)
-            nickname += chr(decAsciiSign)
-
-        return nickname
-
-    def getResponse(self):
-        msg = self.recvMsg()
-        msg = msg.replace("\n", '')
-        return msg
-
-    def loginToGame(self, auto_login=True):
-        msg = self.getResponse()
+    def login(self, auto_login=True):
+        msg = self.get_response()
         if msg == config.S_CONNECT:
             if auto_login:
                 command = f'{config.S_LOGIN} {self.name}'
             else:
                 nickname = input()
                 command = f'{config.S_LOGIN} {nickname}'
-                # print(f'send Login')
             logger.info(f"{config.CLIENT} - {command}")
-            self.sendMsg(f'{command}')
+            self.send_msg(f'{command}')
         else:
             logger.warn(f'{config.SERVER} - Unknown command - {msg}')
 
-    def convertingMsg(self, msg):
-        l = msg.strip().replace("\n", "").split(" ")
-        if len(l) == 1:
-            return l[0], None  # return command
-        elif len(l) > 1:
-            return l[0], l[1:]  # return command and args
-
-    def startCommandHandler(self, msg):
+    def start_command_handler(self, msg):
         logger.info(f'{config.SERVER} - START')
-        _, args = self.convertingMsg(msg)
+        _, args = self.get_command_and_args(msg)
         self.id = args[0]
         numberOfPlayers = int(len(args[1:]) / 2)
         self.puzzles = args[1 + numberOfPlayers:]
 
-    def yourChoiceCommandHandler(self):
+    def your_choice_command_handler(self):
         logger.info(f'{config.CLIENT} - {config.S_CHOOSE} {self.puzzles[0]}')
-        self.sendMsg(f'{config.S_CHOOSE} {self.puzzles[0]}')
+        self.send_msg(f'{config.S_CHOOSE} {self.puzzles[0]}')
 
-    def playerChoiceCommandHandler(self, msg):
+    def player_choice_command_handler(self, msg):
         logger.info(f'{config.SERVER} - {msg}')
-        _, args = self.convertingMsg(msg)
+        _, args = self.get_command_and_args(msg)
         self.puzzle = args[2]
         self.puzzles.remove(self.puzzle)
 
-    def roundCommandHandler(self, msg):
+    def round_command_handler(self, msg):
         print(f'{msg}')
         self.puzzles = []
-        _, args = self.convertingMsg(msg)
+        _, args = self.get_command_and_args(msg)
         if args is None:
             logger.info(f'{config.SERVER} - {config.S_ROUND}')
         else:
@@ -116,71 +78,71 @@ class Player(BasePlayer):
 
         # print(f'Puzzles {self.puzzles}')
 
-    def yourMoveCommandHandler(self):
+    def your_move_command_handler(self):
         logger.info(f'{config.SERVER} - {config.S_YOUR_MOVE}')
         self.rounds += 1
         if self.rounds == 1:
             pass
-        else:
+        if self.rounds > 1:
             if self.rounds % 2 == 0:
-                self.posX += 2
+                self.pos_x += 2
             else:
-                self.posX -= 2
-                self.posY += 1
+                self.pos_x -= 2
+                self.pos_y += 1
 
-        msg = f'{config.S_MOVE} {self.posX} {self.posY} {self.orientation}'
-        self.sendMsg(f'{msg}')
+        msg = f'{config.S_MOVE} {self.pos_x} {self.pos_y} {self.orientation}'
+        self.send_msg(f'{msg}')
         logger.info(f'{config.CLIENT} - {msg}')
 
-    def moveCommandHandler(self, msg):
+    def move_command_handler(self, msg):
         logger.info(f'{config.SERVER} - {msg}')
-        _, args = self.convertingMsg(msg)
-        self.playerMoves += 1
+        _, args = self.get_command_and_args(msg)
+        self.player_moves += 1
 
-    def startGame(self):
-        while self.inGame:
-            messages = self.recvMsg()
+    def start_game(self):
+        while self.in_game:
+            message = self.recv_msg()
             # print(messages)
-            if messages == "":
-                self.inGame = False
+            if message == "":
+                self.in_game = False
             else:
-                listOfMessages = messages.split("\n")
-                listOfMessages = [m for m in listOfMessages if m != ""]
-                # print(listOfMessages)
-                for msg in listOfMessages:
+                messages = message.split("\n")
+                messages = [m for m in messages if m != ""]
+                # print(messages)
+                for msg in messages:
                     if self.hacker_mode == config.H_EXIT_DURING_GAME:
-                        self.exitDuringGame()
+                        self.exit_during_game()
                     elif self.hacker_mode == config.H_TIMEOUT:
-                        self.timeoutDuringGame()
+                        self.timeout_during_game()
 
                     if msg.startswith(config.S_GAME_OVER_RESULTS):
                         response = msg.replace("\n", "")
                         logger.info(f'{config.SERVER} - {response}')
-                        self.inGame = False
+                        self.in_game = False
 
                     elif msg.startswith(config.S_START):
-                        self.startCommandHandler(msg)
+                        self.start_command_handler(msg)
 
                     elif msg.startswith(config.S_YOUR_CHOICE):
                         if self.hacker_mode == config.H_EXIT_AFTER_CHOICE:
-                            self.exitAfterYourChoice()
+                            self.exit_after_your_choice()
 
                         elif self.hacker_mode == config.H_SPAM:
-                            self.sendLoginMessagesInfinity()
+                            self.send_login_messages_infinity()
 
-                        self.yourChoiceCommandHandler()
+                        self.your_choice_command_handler()
 
                     elif msg.startswith(config.S_PLAYER_CHOICE):
-                        self.playerChoiceCommandHandler(msg)
+                        self.player_choice_command_handler(msg)
 
                     elif msg.startswith(config.S_ROUND):
-                        self.roundCommandHandler(msg)
+                        self.round_command_handler(msg)
 
                     elif msg.startswith(config.S_YOUR_MOVE):
-                        self.yourMoveCommandHandler()
+                        self.your_move_command_handler()
 
                     elif msg.startswith(config.S_PLAYER_MOVE):
-                        self.moveCommandHandler(msg)
+                        self.move_command_handler(msg)
 
                     elif msg == config.S_OK:
                         logger.info(f'{config.SERVER} - {config.S_OK}')
@@ -192,21 +154,21 @@ class Player(BasePlayer):
                         # print(msg)
                         logger.warn(f'{config.SERVER} - Unknown command: {msg}')
 
-    def timeoutDuringGame(self):
-        if self.flagTimeoutDuringGame == self.rounds:
+    def timeout_during_game(self):
+        if self.flag_timeout_during_game == self.rounds:
             time.sleep(5)
             sys.exit(1)
 
-    def exitDuringGame(self):
+    def exit_during_game(self):
         self.receivedMessage += 1
         if self.receivedMessage > config.MAX_RECEIVED_MESSAGE:
             sys.exit(1)
 
-    def exitAfterYourChoice(self):
-        if self.exitGameAfterYourChoice == self.rounds:
+    def exit_after_your_choice(self):
+        if self.exit_game_after_your_choice == self.rounds:
             sys.exit(1)
 
-    def sendLoginMessagesInfinity(self):
+    def send_login_messages_infinity(self):
         while True:
             command = f'{config.S_LOGIN} You have been hacked!'
-            self.sendMsg(command)
+            self.send_msg(command)

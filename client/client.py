@@ -6,15 +6,14 @@ from contextlib import contextmanager
 from common import config
 from .player import Player
 
-
 @contextmanager
-def connectToServer(client):
+def connect_to_server(client):
     if not isinstance(client, Client):
         raise Exception(f"It's not {Client.__name__} instance!")
     try:
         client.conn.connect(config.C_ADDRESS)
         client.player = Player(client.conn)
-        client.player.loginToGame(auto_login=config.AUTO_LOGIN)
+        client.player.login(auto_login=config.AUTO_LOGIN)
         yield
     finally:
         conn = client.conn
@@ -29,9 +28,8 @@ class Client:
 
     def run(self):
         try:
-            with connectToServer(self):
-                while self.player.inGame:
-                    self.player.startGame()
-
+            with connect_to_server(self):
+                while self.player.in_game:
+                    self.player.start_game()
         except Exception as e:
             print(e)
