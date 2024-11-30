@@ -1,5 +1,5 @@
 from common import config
-from common.utils import encode, decode
+from common.utils import decode, encode
 
 
 class BasePlayer:
@@ -10,17 +10,11 @@ class BasePlayer:
         self.conn.send(encode(msg))
 
     def recv_msg(self):
-        msg = self.conn.recv(config.BUFF_SIZE)
-        return decode(msg)
+        return decode(self.conn.recv(config.BUFF_SIZE))
 
     def get_response(self):
-        msg = self.recv_msg()
-        msg = msg.replace("\n", '')
-        return msg
+        return self.recv_msg().replace("\n", "")
 
     def get_command_and_args(self, msg):
-        l = msg.strip().replace("\n", "").split(" ")
-        if len(l) == 1:
-            return l[0], None  # return command
-        elif len(l) > 1:
-            return l[0], l[1:]  # return command and args
+        messages = msg.strip().replace("\n", "").split(" ")
+        return messages[0], (messages[1:] if len(messages) > 1 else None)

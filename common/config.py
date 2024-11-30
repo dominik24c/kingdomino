@@ -17,7 +17,7 @@ MAX_LENGTH_OF_MSG = 250
 NUMBER_OF_PLAYERS = 4
 ROUNDS = 12
 PUZZLES_PER_ROUND = 4
-CASTLE = 'CASTLE'
+CASTLE = "CASTLE"
 
 # CLIENT CONFIG
 C_IP_SERVER = "127.0.0.1"
@@ -25,16 +25,16 @@ C_ADDRESS = (C_IP_SERVER, PORT)
 AUTO_LOGIN = True
 
 # SCRIPT ARGS
-A_HACKER_MODE = 'hacker_mode'
-A_LOGIN = 'login'
+A_HACKER_MODE = "hacker_mode"
+A_LOGIN = "login"
 ALLOWED_ARGS = [A_HACKER_MODE, A_LOGIN]
 
 # HACKER CONFIG
 MAX_RECEIVED_MESSAGE = 30
-H_EXIT_AFTER_CHOICE = 'exit after choice'
-H_EXIT_DURING_GAME = 'exit during game'
-H_TIMEOUT = 'timeout'
-H_SPAM = 'spamming'
+H_EXIT_AFTER_CHOICE = "exit after choice"
+H_EXIT_DURING_GAME = "exit during game"
+H_TIMEOUT = "timeout"
+H_SPAM = "spamming"
 
 # COMMANDS OF SERVER
 S_CONNECT = "CONNECT"
@@ -54,14 +54,14 @@ S_ERROR = "ERROR"
 ALLOWED_CLIENT_COMMANDS = [S_LOGIN, S_CHOOSE, S_MOVE]
 
 # LOGGER CONFIG
-SERVER = '[SERVER] -'
-CLIENT = '[CLIENT] -'
-S_FILENAME_LOGS = 'out.log'
-C_FILENAME_LOGS = f'out-{str(int(time.time()))}.log'
+SERVER = "[SERVER] -"
+CLIENT = "[CLIENT] -"
+S_FILENAME_LOGS = "out.log"
+C_FILENAME_LOGS = f"out-{str(int(time.time()))}.log"
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-DIR_LOGS = 'logs'
-SERVER_DIR_LOGS = os.path.join(BASE_DIR, '..', DIR_LOGS, 'server')
-CLIENT_DIR_LOGS = os.path.join(BASE_DIR, '..', DIR_LOGS, 'client')
+DIR_LOGS = "logs"
+SERVER_DIR_LOGS = os.path.join(BASE_DIR, "..", DIR_LOGS, "server")
+CLIENT_DIR_LOGS = os.path.join(BASE_DIR, "..", DIR_LOGS, "client")
 SERVER_PATH_TO_LOGS = os.path.join(SERVER_DIR_LOGS, S_FILENAME_LOGS)
 CLIENT_PATH_TO_LOGS = os.path.join(CLIENT_DIR_LOGS, C_FILENAME_LOGS)
-LOGGER_NAME = 'logger'
+LOGGER_NAME = "logger"

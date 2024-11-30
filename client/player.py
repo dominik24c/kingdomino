@@ -6,8 +6,9 @@ import time
 
 from common import config
 from common.base_player import BasePlayer
+
 from .dependencies import logger
-from .utils import get_commands, generate_nickname
+from .utils import generate_nickname, get_commands
 
 
 class Player(BasePlayer):
@@ -40,46 +41,48 @@ class Player(BasePlayer):
         msg = self.get_response()
         if msg == config.S_CONNECT:
             if auto_login:
-                command = f'{config.S_LOGIN} {self.name}'
+                command = f"{config.S_LOGIN} {self.name}"
             else:
                 nickname = input()
-                command = f'{config.S_LOGIN} {nickname}'
+                command = f"{config.S_LOGIN} {nickname}"
             logger.info(f"{config.CLIENT} - {command}")
-            self.send_msg(f'{command}')
+            self.send_msg(f"{command}")
         else:
-            logger.warn(f'{config.SERVER} - Unknown command - {msg}')
+            logger.warn(f"{config.SERVER} - Unknown command - {msg}")
 
     def start_command_handler(self, msg):
-        logger.info(f'{config.SERVER} - START')
+        logger.info(f"{config.SERVER} - START")
         _, args = self.get_command_and_args(msg)
         self.id = args[0]
         numberOfPlayers = int(len(args[1:]) / 2)
-        self.puzzles = args[1 + numberOfPlayers:]
+        self.puzzles = args[1 + numberOfPlayers :]
 
     def your_choice_command_handler(self):
-        logger.info(f'{config.CLIENT} - {config.S_CHOOSE} {self.puzzles[0]}')
-        self.send_msg(f'{config.S_CHOOSE} {self.puzzles[0]}')
+        logger.info(f"{config.CLIENT} - {config.S_CHOOSE} {self.puzzles[0]}")
+        self.send_msg(f"{config.S_CHOOSE} {self.puzzles[0]}")
 
     def player_choice_command_handler(self, msg):
-        logger.info(f'{config.SERVER} - {msg}')
+        logger.info(f"{config.SERVER} - {msg}")
         _, args = self.get_command_and_args(msg)
         self.puzzle = args[2]
         self.puzzles.remove(self.puzzle)
 
     def round_command_handler(self, msg):
-        print(f'{msg}')
+        print(f"{msg}")
         self.puzzles = []
         _, args = self.get_command_and_args(msg)
         if args is None:
-            logger.info(f'{config.SERVER} - {config.S_ROUND}')
+            logger.info(f"{config.SERVER} - {config.S_ROUND}")
         else:
             self.puzzles = args
-            logger.info(f'{config.SERVER} - {config.S_ROUND} {" ".join(self.puzzles)}')
+            logger.info(
+                f'{config.SERVER} - {config.S_ROUND} {" ".join(self.puzzles)}'
+            )
 
         # print(f'Puzzles {self.puzzles}')
 
     def your_move_command_handler(self):
-        logger.info(f'{config.SERVER} - {config.S_YOUR_MOVE}')
+        logger.info(f"{config.SERVER} - {config.S_YOUR_MOVE}")
         self.rounds += 1
         if self.rounds == 1:
             pass
@@ -90,12 +93,12 @@ class Player(BasePlayer):
                 self.pos_x -= 2
                 self.pos_y += 1
 
-        msg = f'{config.S_MOVE} {self.pos_x} {self.pos_y} {self.orientation}'
-        self.send_msg(f'{msg}')
-        logger.info(f'{config.CLIENT} - {msg}')
+        msg = f"{config.S_MOVE} {self.pos_x} {self.pos_y} {self.orientation}"
+        self.send_msg(f"{msg}")
+        logger.info(f"{config.CLIENT} - {msg}")
 
     def move_command_handler(self, msg):
-        logger.info(f'{config.SERVER} - {msg}')
+        logger.info(f"{config.SERVER} - {msg}")
         _, args = self.get_command_and_args(msg)
         self.player_moves += 1
 
@@ -117,7 +120,7 @@ class Player(BasePlayer):
 
                     if msg.startswith(config.S_GAME_OVER_RESULTS):
                         response = msg.replace("\n", "")
-                        logger.info(f'{config.SERVER} - {response}')
+                        logger.info(f"{config.SERVER} - {response}")
                         self.in_game = False
 
                     elif msg.startswith(config.S_START):
@@ -145,14 +148,16 @@ class Player(BasePlayer):
                         self.move_command_handler(msg)
 
                     elif msg == config.S_OK:
-                        logger.info(f'{config.SERVER} - {config.S_OK}')
+                        logger.info(f"{config.SERVER} - {config.S_OK}")
 
                     elif msg == config.S_ERROR:
-                        logger.info(f'{config.SERVER} - {config.S_ERROR}')
+                        logger.info(f"{config.SERVER} - {config.S_ERROR}")
 
                     else:
                         # print(msg)
-                        logger.warn(f'{config.SERVER} - Unknown command: {msg}')
+                        logger.warn(
+                            f"{config.SERVER} - Unknown command: {msg}"
+                        )
 
     def timeout_during_game(self):
         if self.flag_timeout_during_game == self.rounds:
@@ -170,5 +175,5 @@ class Player(BasePlayer):
 
     def send_login_messages_infinity(self):
         while True:
-            command = f'{config.S_LOGIN} You have been hacked!'
+            command = f"{config.S_LOGIN} You have been hacked!"
             self.send_msg(command)

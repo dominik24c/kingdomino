@@ -2,156 +2,192 @@ import threading
 
 from common import config
 from common.base_player import BasePlayer
+
 from ..dependencies import logger
-from .board import Board
 from ..utils import get_command_and_args_from_player
+from .board import Board
 
 
 class Player(BasePlayer, threading.Thread):
-    def __init__(self, conn, game, idPlayer, name=""):
-        BasePlayer.__init__(self, conn)
+    def __init__(self, conn, game, unique_id, name=""):
+        super().__init__(conn)
         threading.Thread.__init__(self)
 
         self.name = name
         self.game = game
-        self.inGame = True
+        self.in_game = True
         self.puzzle = None
-        self.isConnection = True
-        self.isYourMove = threading.Event()
-        self.isYourMove.set()
+        self.is_connection = True
+        self.your_turn = threading.Event()
+        self.your_turn.set()
         self.board = Board()
-        self.isLogin = True
-        self.idPlayer = idPlayer
-        self.numOfErrors = 0
+        self.is_login = True
+        self.unique_id = unique_id
+        self.errors_count = 0
 
     def send_msg(self, msg):
         try:
             super().send_msg(msg)
         except Exception:
-            m = msg.replace('\n', '')
-            logger.error(f'{config.CLIENT} Connection lost! {self.idPlayer}, cannot send: {m}')
-            self.isConnection = False
+            m = msg.replace("\n", "")
+            logger.error(
+                f"{config.CLIENT} Connection lost! \
+                    {self.unique_id}, cannot send: {m}"
+            )
+            self.is_connection = False
 
-    def getPlayerInfo(self):
-        return f'[PLAYER {self.idPlayer}] - '
+    def get_player_info(self):
+        return f"[PLAYER {self.unique_id}] - "
 
-    def sendError(self):
-        self.numOfErrors += 1
-        self.send_msg(f'{config.S_ERROR}')
-        logger.error(f'{config.CLIENT} {self.getPlayerInfo()} {config.S_ERROR}')
+    def send_error(self):
+        self.errors_count += 1
+        self.send_msg(f"{config.S_ERROR}")
+        logger.error(
+            f"{config.CLIENT} {self.get_player_info()} {config.S_ERROR}"
+        )
 
-    def messageHandler(self):
-        msg = self.recv_msg()
-        return [m for m in msg.split("\n") if m != '']
+    def message_handler(self):
+        return [m for m in self.recv_msg().split("\n") if m]
 
-    def loginHandler(self, args):
-        if len(args) == 1 and self.name == "":
+    def login(self, args):
+        if len(args) == 1 and not self.name:
             self.name = args[0]
-            logger.info(f'{config.CLIENT} {self.getPlayerInfo()} Set nickname: {self.name}')
-            self.send_msg(f'{config.S_OK}')
-            self.numOfErrors = 0
+            logger.info(
+                f"{config.CLIENT} {self.get_player_info()} \
+                    Set nickname: {self.name}"
+            )
+            self.send_msg(f"{config.S_OK}")
+            self.errors_count = 0
         else:
-            logger.error(f'{config.CLIENT} {self.getPlayerInfo()} Cannot set nickname!')
-            logger.error(f'{config.CLIENT} {self.getPlayerInfo()} Your args: {args}')
-            self.sendError()
+            logger.error(
+                f"{config.CLIENT} {self.get_player_info()} Cannot set nickname!"
+            )
+            logger.error(
+                f"{config.CLIENT} {self.get_player_info()} Your args: {args}"
+            )
+            self.send_error()
 
-    def moveHandler(self, args):
+    def move(self, args):
         try:
             if len(args) != 3:
                 raise Exception
             x, y, orientation = int(args[0]), int(args[1]), int(args[2])
             if self.game.legalMove(self, x=x, y=y, orientation=orientation):
-                self.numOfErrors = 0
-                logger.info(f'{config.CLIENT} {self.getPlayerInfo()} {config.S_MOVE}: {self.idPlayer}')
+                self.errors_count = 0
+                logger.info(
+                    f"{config.CLIENT} {self.get_player_info()}\
+                          {config.S_MOVE}: {self.unique_id}"
+                )
             else:
-                self.sendError()
-        except Exception as e:
-            self.sendError()
+                self.send_error()
+        except Exception:
+            self.send_error()
 
-    def chooseHandler(self, args):
+    def choose_move(self, args):
         try:
             if len(args) != 1:
                 raise Exception
             puzzle = int(args[0])
             if self.game.legalMove(self, puzzle):
-                logger.info(f'{config.CLIENT} {self.getPlayerInfo()} {config.S_CHOOSE}: {puzzle}')
-                self.numOfErrors = 0
+                logger.info(
+                    f"{config.CLIENT} {self.get_player_info()}\
+                          {config.S_CHOOSE}: {puzzle}"
+                )
+                self.errors_count = 0
             else:
-                self.sendError()
-        except Exception as e:
-            self.sendError()
+                self.send_error()
+        except Exception:
+            self.send_error()
 
-    def getTimeout(self):
-        if self.isLogin:
-            self.isLogin = False
-            timeout = config.TIMEOUT_LOGIN
-        else:
-            timeout = config.TIMEOUT
-        return timeout
+    def get_timeout(self):
+        if self.is_login:
+            self.is_login = False
+        return config.TIMEOUT_LOGIN if self.is_login else config.TIMEOUT
 
     def run(self):
         messages = None
-        while self.isConnection and self.inGame:
-            if self.isYourMove.is_set():
+        while self.is_connection and self.in_game:
+            if self.your_turn.is_set():
                 # print('waiting for response')
-                timeout = self.getTimeout()
+                timeout = self.get_timeout()
                 try:
-                    logger.info(f'{config.CLIENT} {self.getPlayerInfo()} waiting for response')
+                    logger.info(
+                        f"{config.CLIENT} {self.get_player_info()}"
+                        "waiting for response"
+                    )
                     self.conn.settimeout(timeout)
-                    messages = self.messageHandler()
+                    messages = self.message_handler()
                     self.conn.settimeout(None)
                 except IndexError:
-                    self.sendError()
+                    self.send_error()
                 except TypeError:
-                    logger.error(f'{config.CLIENT} {self.getPlayerInfo()} lost connection')
-                    self.isConnection = False
-                except TimeoutError as e:
-                    logger.error(f'{config.CLIENT} {self.getPlayerInfo()} timeout!')
-                    self.isConnection = False
+                    logger.error(
+                        f"{config.CLIENT} {self.get_player_info()}"
+                        " lost connection"
+                    )
+                    self.is_connection = False
+                except TimeoutError:
+                    logger.error(
+                        f"{config.CLIENT} {self.get_player_info()} timeout!"
+                    )
+                    self.is_connection = False
                 except Exception as e:
-                    print(f'{type(e).__name__} exception')
-                    logger.error(f'{config.CLIENT} {self.getPlayerInfo()} {e}')
+                    print(f"{type(e).__name__} exception")
+                    logger.error(f"{config.CLIENT} {self.get_player_info()} {e}")
                     self.conn.close()
 
                 if messages is not None and len(messages) > 0:
                     for m in messages:
                         if len(m) >= config.MAX_LENGTH_OF_MSG:
                             logger.error(
-                                f'{config.CLIENT} {self.getPlayerInfo()} Too Long message! Client {self.idPlayer} was '
-                                f'kicked!')
-                            self.isConnection = False
+                                f"{config.CLIENT} {self.get_player_info()} "
+                                f"Too Long message! Client {self.unique_id}"
+                                " was kicked!"
+                            )
+                            self.is_connection = False
 
                         command, args = get_command_and_args_from_player(m)
-                        logger.info(f'{config.CLIENT} {self.getPlayerInfo()} {command} {args}')
+                        logger.info(
+                            f"{config.CLIENT} {self.get_player_info()}\
+                                  {command} {args}"
+                        )
 
-                        if self.isConnection:
+                        if self.is_connection:
                             if command in config.ALLOWED_CLIENT_COMMANDS:
                                 if command == config.S_LOGIN:
-                                    self.loginHandler(args)
-                                    # print(self.isYourMove.isSet())
-                                    # self.isYourMove.clear()
-                                    while self.game.waitUntilLoginPlayers.is_set():
+                                    self.login(args)
+                                    while self.game.wait_for_players.is_set():
                                         pass
                                 elif command == config.S_CHOOSE:
-                                    self.chooseHandler(args)
+                                    self.choose_move(args)
                                 elif command == config.S_MOVE:
-                                    self.moveHandler(args)
+                                    self.move(args)
                                 else:
                                     logger.warn(
-                                        f"{config.CLIENT} {self.getPlayerInfo()} Unknown command")
-                                    self.sendError()
+                                        f"{config.CLIENT} "
+                                        f"{self.get_player_info()}"
+                                        "Unknown command"
+                                    )
+                                    self.send_error()
                             else:
                                 logger.warn(
-                                    f"{config.CLIENT} {self.getPlayerInfo()} Not allowed command")
-                                self.sendError()
+                                    f"{config.CLIENT} {self.get_player_info()} "
+                                    "Not allowed command"
+                                )
+                                self.send_error()
 
-                        if self.numOfErrors >= config.NUM_OF_ERRORS:
+                        if self.errors_count >= config.NUM_OF_ERRORS:
                             logger.error(
-                                f'{config.CLIENT} {self.getPlayerInfo()} Too much errors from client. '
-                                f'Client {self.idPlayer} was kicked!')
-                            self.isConnection = False
+                                f"{config.CLIENT} {self.get_player_info()} \
+                                    Too much errors from client. "
+                                f"Client {self.unique_id} was kicked!"
+                            )
+                            self.is_connection = False
                             break
 
                 elif messages is not None and len(messages) == 0:
-                    logger.error(f'{config.CLIENT} {self.getPlayerInfo()} lost connection!')
-                    self.isConnection = False
+                    logger.error(
+                        f"{config.CLIENT} {self.get_player_info()}"
+                        " lost connection!"
+                    )
+                    self.is_connection = False

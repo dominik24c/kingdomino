@@ -5,43 +5,46 @@ from contextlib import contextmanager
 
 from common import config
 from common.utils import encode
-from .exceptions import *
+
+from .dependencies import logger
+from .exceptions import (
+    ConnectionServerFailed,
+    CreatingServerFailed,
+    ListeningServerFailed,
+)
 from .game.game import Game
 from .game.player import Player
-from .dependencies import logger
-
-
-def create_connection():
-    logger.info(f'{config.SERVER} Start program')
-    logger.info(f'{config.SERVER} Creating server...')
-    try:
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if sys.platform == "linux":
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind(config.ADDRESS)
-    except Exception as e:
-        raise CreatingServerFailed(e)
-    else:
-        return server
 
 
 @contextmanager
-def openConnection(server):
+def open_connection(server):
     if not isinstance(server, Server):
         raise Exception(f"It's not {Server.__name__} instance!")
     try:
         server.listen()
         yield
     finally:
-        conn = server.conn
-        if conn:
-            conn.close()
+        if server.conn:
+            server.conn.close()
 
 
-class Server(object):
+class Server:
     def __init__(self):
-        self.conn = create_connection()
+        self.conn = self.create_connection()
         self.game = Game()
+
+    def create_connection():
+        logger.info(f"{config.SERVER} Start program")
+        logger.info(f"{config.SERVER} Creating server...")
+        try:
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if sys.platform == "linux":
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(config.ADDRESS)
+        except Exception as e:
+            raise CreatingServerFailed(e)
+        else:
+            return server
 
     def listen(self):
         logger.info(f"{config.SERVER} Listening...")
@@ -52,25 +55,27 @@ class Server(object):
 
     def run(self):
         try:
-            with openConnection(self):
-                while self.game.inGame:
+            with open_connection(self):
+                while self.game.in_game:
                     conn, addr = self.conn.accept()
                     logger.info(f"{config.SERVER} NEW PLAYER HAS JOINED.")
-                    conn.send(encode(f'{config.S_CONNECT}'))
+                    conn.send(encode(f"{config.S_CONNECT}"))
 
-                    player = Player(conn, self.game, self.game.amountOfPlayers + 1)
+                    player = Player(
+                        conn, self.game, self.game.amountOfPlayers + 1
+                    )
                     self.game.addNewPlayer(player)
+
                     if len(self.game.players) == config.NUMBER_OF_PLAYERS:
                         self.game.startGame()
                         for player in self.game.players:
                             player.join()
-                        logger.info('END GAME')
-                    # break
+                        logger.info("END GAME")
         except KeyboardInterrupt:
-            self.game.inGame = False
-            logger.warn('Keyboard Interrupt')
+            self.game.in_game = False
+            logger.warn("Keyboard Interrupt")
         except Exception as e:
-            logger.error(f'Error {e}')
+            logger.error(f"Error {e}")
             raise ConnectionServerFailed(e)
 
-        logger.info(f'END PROGRAM')
+        logger.info("END PROGRAM")

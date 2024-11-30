@@ -12,7 +12,7 @@ def create_logger(dirLogs, fullPathToLogs):
     logger.setLevel(logging.DEBUG)
     fh = logging.FileHandler(fullPathToLogs)
     fh.setLevel(logging.DEBUG)
-    format = '%(asctime)s %(message)s'
+    format = "%(asctime)s %(message)s"
     formatter = logging.Formatter(format)
     fh.setFormatter(formatter)
     logger.addHandler(fh)

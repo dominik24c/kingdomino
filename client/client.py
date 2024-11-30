@@ -4,21 +4,22 @@ import socket
 from contextlib import contextmanager
 
 from common import config
+
 from .player import Player
+
 
 @contextmanager
 def connect_to_server(client):
     if not isinstance(client, Client):
-        raise Exception(f"It's not {Client.__name__} instance!")
+        raise Exception(f"It's not a {Client.__name__} instance!")
     try:
         client.conn.connect(config.C_ADDRESS)
         client.player = Player(client.conn)
         client.player.login(auto_login=config.AUTO_LOGIN)
         yield
     finally:
-        conn = client.conn
-        if conn:
-            conn.close()
+        if client.conn:
+            client.conn.close()
 
 
 class Client:
@@ -29,7 +30,7 @@ class Client:
     def run(self):
         try:
             with connect_to_server(self):
-                while self.player.in_game:
+                while self.player and self.player.in_game:
                     self.player.start_game()
         except Exception as e:
             print(e)
